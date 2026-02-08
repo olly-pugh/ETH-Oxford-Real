@@ -346,13 +346,28 @@ frontend/
 
 ## Production roadmap
 
-1. ~~**Replace FDCShim** with Flare FDC verification contract~~ **Done** — production path uses real `verifyWeb2Json()` on Coston2
-2. **Flare mainnet deployment** — move from Coston2 testnet to Flare mainnet
-3. **Real metering** — integrate with smart meter APIs (n3rgy, Hildebrand, DCC)
-4. **ERC-20 FLEX token** — replace uint mapping with transferable token
-5. **Multi-period staking** — commit to flexibility over longer windows for bonus rewards
-6. **DAO governance** — token holders vote on threshold parameters and reward curves
-7. **Grid operator integration** — National Grid ESO flexibility market participation
+This project is currently running end-to-end on Flare’s Coston2 testnet. The roadmap below outlines the steps required to take it from a validated prototype to a production-ready system integrated with real energy markets.
+
+1. ~~**Replace FDCShim with native Flare FDC verification**~~ **Completed**  
+   The production data path now uses Flare’s real `verifyWeb2Json()` flow on Coston2, removing mocks and ensuring on-chain verifiability of Web2 energy data.
+
+2. **Flare mainnet deployment**  
+   Migrate contracts and indexing infrastructure from Coston2 to Flare mainnet, including parameter hardening and gas optimisation.
+
+3. **Real metering integration**  
+   Connect to live smart meter data providers (e.g. n3rgy, Hildebrand, DCC) to replace simulated household demand with real half-hourly consumption data.
+
+4. **ERC-20 FLEX token**  
+   Upgrade the internal flexibility balance mapping to a fully transferable ERC-20 token, enabling composability with DeFi and secondary markets.
+
+5. **Multi-period staking**  
+   Allow users to commit flexibility across longer time windows (days to weeks) in exchange for higher or more stable rewards.
+
+6. **DAO governance**  
+   Introduce on-chain governance where FLEX token holders vote on demand-shift thresholds, reward curves, and system parameters.
+
+7. **Grid operator integration**  
+   Integrate with National Grid ESO and other flexibility markets to monetise aggregated demand shifting and route real revenues back to users.
 
 ---
 
