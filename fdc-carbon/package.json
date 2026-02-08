@@ -4,7 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "fdc:request": "node request_jsonapi_attestation.js",
+    "fdc:proof": "node fetch_da_proof.js",
+    "fdc:verify": "node verify_with_fdc_verification.js"
   },
   "keywords": [],
   "author": "",

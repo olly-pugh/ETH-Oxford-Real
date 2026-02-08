@@ -7,8 +7,10 @@
     "compile": "npx hardhat compile",
     "node": "npx hardhat node",
     "deploy": "npx hardhat run scripts/deploy.js --network localhost",
-    "fdc:attest": "node backend/fdc_stub.js",
-    "fdc:relay": "node backend/fdc_to_contract_stub.js",
+    "fdc:attest": "node fdc-carbon/request_jsonapi_attestation.js",
+    "fdc:proof": "node fdc-carbon/fetch_da_proof.js",
+    "fdc:verify": "node fdc-carbon/verify_with_fdc_verification.js",
+    "fdc:relay": "node fdc-carbon/fetch_da_proof.js",
     "demo": "npx hardhat run scripts/demoFlow.js --network localhost"
   },
   "dependencies": {

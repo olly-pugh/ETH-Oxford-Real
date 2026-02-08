@@ -17,7 +17,11 @@
       "Bash(curl:*)",
       "Bash(npx hardhat run:*)",
       "Bash(npx react-scripts build)",
-      "WebSearch"
+      "WebSearch",
+      "WebFetch(domain:dev.flare.network)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:fdc-verifiers-testnet.flare.network)",
+      "WebFetch(domain:raw.githubusercontent.com)"
     ]
   }
 }
