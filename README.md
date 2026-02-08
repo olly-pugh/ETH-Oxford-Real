@@ -122,36 +122,86 @@ cd frontend && npm start
 
 ## Live FDC attestation-only flow (no mocks)
 
-Use this flow to run real Flare FDC JsonApi attestation and real DA proof retrieval.
+Use this flow to verify an existing real Flare FDC attestation on-chain and only run rewards after confirmation.
 
 ```bash
-# 1) Set credentials and network
-export PRIVATE_KEY="659e79e52fadbf7af89cd7d2959f295de9ba388c4818ad5f2f889ce835606df4"
-export VERIFIER_API_KEY="<your-verifier-api-key>"
-export RPC_URL="https://coston2-api.flare.network/ext/C/rpc"
-export FDC_HUB_ADDRESS="0x48aC463d7975828989331F4De43341627b9c5f1D"
-export FDC_VERIFICATION_ADDRESS="0x906507E0B64bcD494Db73bd0459d1C667e14B933"
-export API_URL="https://api.carbonintensity.org.uk/intensity/2026-01-31T00:00Z/2026-02-07T00:00Z"
+# 1) Real-mode + Flare network config
+export ATTESTATION_MODE="real"
+export FLARE_RPC_URL="<flare-rpc-url>"
+export FLARE_CHAIN_ID="<flare-chain-id>"
+export FDC_ATTESTATION_CONTRACT="<fdc-hub-or-attestation-contract>"
+export FDC_VERIFICATION_CONTRACT="0x906507E0B64bcD494Db73bd0459d1C667e14B933"
+export CONFIRMATIONS="12"
+
+# 2) Existing attestation + proof artifacts
+export ATTESTATION_TX_HASH="<attestation-tx-hash>"
+export REQUEST_SUBMISSION_PATH="fdc-carbon/out/request_submission.json"
+export DA_PROOF_PATH="fdc-carbon/out/da_proof.json"
+export API_RESPONSE_PATH="fdc-carbon/api_response.json"
 export EXPECTED_MIC="0xe474421315f359e8422d0b2c0feb233a52f3029dc607cb96c5c65086aaae7846"
 
-# 2) Submit a real JsonApi attestation request to FdcHub
-node fdc-carbon/request_jsonapi_attestation.js
+# 3) Check attestation on Flare (events/methods + confirmations + hash/timestamp + IFdcVerification)
+npm run check:attestation
 
-# 3) After round finalization, fetch DA proof (set the real round id)
-export VOTING_ROUND_ID="<round-id>"
-node fdc-carbon/fetch_da_proof.js
+# 4) Deploy minimal RewardExecutor (MetaMask deploy tx payload)
+#    This creates an on-chain contract address to use as REWARD_CONTRACT_ADDRESS.
+export SIGNER_ADDRESS="0x<your_metamask_address>"
+npm run reward:deploy:tx
 
-# 4) Verify on-chain via IFdcVerification.verifyJsonApi(IJsonApi.Proof)
-#    (ABI is preloaded in script and defaults to verifyJsonApi)
-# export VERIFY_FUNCTION_NAME="verifyJsonApi"   # optional
-# export VERIFY_FUNCTION_ABI_JSON='<json-fragment>' # optional override
-node fdc-carbon/verify_with_fdc_verification.js
+# 5) Dry-run reward flow (verifies attestation first, no tx sent)
+export DRY_RUN="1"
+export SIGNER_MODE="metamask"
+export REWARD_CONTRACT_ADDRESS="0x<deployed_reward_executor_address>"
+export REWARD_FUNCTION_NAME="executeReward"
+# args: [attestationTxHash, payloadHash, slotKey, participant, shiftedKw]
+export REWARD_FUNCTION_ARGS_JSON='["0x<attestationTxHash>","0x<payloadHash>","0x<slotKey>","0x<participant>","1000"]'
+npm run reward:run
+
+# 6) Live reward execution (only after successful dry-run)
+export DRY_RUN="0"
+npm run reward:run
 ```
 
 Outputs:
-- `fdc-carbon/out/request_submission.json`
-- `fdc-carbon/out/da_proof.json`
-- `fdc-carbon/out/verification_result.json`
+- `fdc-carbon/out/check_attestation_result.json`
+- stdout fields: attestation tx hash, block number, confirmed true/false
+- stdout fields (live mode): reward tx hash + block number
+
+## On-chain proof inspectors (presentation mode)
+
+Use these scripts to print clear, terminal-only proof that:
+- the FDC attestation tx exists and verifies on-chain
+- the reward tx emitted `RewardExecuted` from the reward contract
+
+```bash
+# Shared config (Coston2)
+export ATTESTATION_MODE="real"
+export FLARE_RPC_URL="https://coston2-api.flare.network/ext/C/rpc"
+export FLARE_CHAIN_ID="114"
+export CONFIRMATIONS="12"
+export FDC_VERIFICATION_CONTRACT="0x906507E0B64bcD494Db73bd0459d1C667e14B933"
+
+# Known attestation proof inputs
+export ATTESTATION_TX_HASH="0x345fdb1257ea41d1746af39dadfa9201c4902658450fe3e8d9b6bfd5384f2fcf"
+export DA_PROOF_PATH="fdc-carbon/out/da_proof.json"
+export REQUEST_SUBMISSION_PATH="fdc-carbon/out/request_submission.json"
+export API_RESPONSE_PATH="fdc-carbon/api_response.json"
+export EXPECTED_MIC="0xe474421315f359e8422d0b2c0feb233a52f3029dc607cb96c5c65086aaae7846"
+
+# Inspect attestation tx + on-chain verification
+npm run attestation:inspect
+
+# Known reward proof inputs
+export REWARD_CONTRACT_ADDRESS="0x4a24DE38a2958f895e62c2E9b8D87054220101e0"
+export REWARD_TX_HASH="0x3f1d172f9b4cdf1c436f223dc8af7ebc0b6a4552d4295ccd5c0480d939fcaf7f"
+
+# Inspect reward tx + decode RewardExecuted event
+npm run reward:inspect
+```
+
+Generated report files:
+- `fdc-carbon/out/inspect_attestation_result.json`
+- `fdc-carbon/out/inspect_reward_result.json`
 
 ## Reading the dashboard
 

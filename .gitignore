@@ -1,0 +1,24 @@
+.DS_Store
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Node
+node_modules/
+**/node_modules/
+npm-debug.log*
+
+# Hardhat
+artifacts/
+cache/
+
+# Frontend build output (do not commit)
+frontend/build/
+
+# Local / generated outputs
+fdc-carbon/out/
+
+# Local IDE/tooling
+.claude/settings.local.json

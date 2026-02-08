@@ -25,6 +25,7 @@
 const fs = require("fs");
 const path = require("path");
 const { ethers } = require("ethers");
+const { assertSimulationMode } = require("../scripts/attestation_mode");
 
 const DATA_DIR = path.join(__dirname, "data");
 const ATTESTATION_FILE = path.join(DATA_DIR, "fdc_attestations.json");
@@ -38,6 +39,8 @@ const FDC_SHIM_ABI = [
 ];
 
 async function run() {
+  assertSimulationMode("backend/fdc_to_contract_stub.js");
+
   // --- Load data ---
   if (!fs.existsSync(ATTESTATION_FILE)) {
     console.error("ERROR: fdc_attestations.json not found. Run fdc_stub.js first.");

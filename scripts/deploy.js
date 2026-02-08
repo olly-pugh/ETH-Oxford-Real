@@ -8,8 +8,11 @@
 const { ethers } = require("hardhat");
 const fs = require("fs");
 const path = require("path");
+const { assertSimulationMode } = require("./attestation_mode");
 
 async function main() {
+  assertSimulationMode("scripts/deploy.js");
+
   const [deployer] = await ethers.getSigners();
   console.log("Deploying with account:", deployer.address);
 

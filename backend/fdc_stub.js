@@ -24,12 +24,15 @@
 const fs = require("fs");
 const path = require("path");
 const { keccak256, toUtf8Bytes } = require("ethers");
+const { assertSimulationMode } = require("../scripts/attestation_mode");
 
 const DATA_DIR = path.join(__dirname, "data");
 const CARBON_FILE = path.join(DATA_DIR, "carbon_week.json");
 const OUT_FILE = path.join(DATA_DIR, "fdc_attestations.json");
 
 function run() {
+  assertSimulationMode("backend/fdc_stub.js");
+
   if (!fs.existsSync(CARBON_FILE)) {
     console.error("ERROR: carbon_week.json not found. Run fetch_carbon.py first.");
     process.exit(1);

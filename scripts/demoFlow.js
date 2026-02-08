@@ -21,10 +21,13 @@
 const { ethers } = require("hardhat");
 const fs = require("fs");
 const path = require("path");
+const { assertSimulationMode } = require("./attestation_mode");
 
 const DATA_DIR = path.join(__dirname, "..", "backend", "data");
 
 async function main() {
+  assertSimulationMode("scripts/demoFlow.js");
+
   console.log("\n╔══════════════════════════════════════════╗");
   console.log("║        FlexDAO — Live Demo Flow          ║");
   console.log("╚══════════════════════════════════════════╝\n");

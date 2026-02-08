@@ -1,21 +1,44 @@
 // fdc_request_carbon_fixed.js
-// Node >=16, npm install node-fetch ethers
-const fetch = globalThis.fetch;
-const crypto = require('crypto');
-const fs = require('fs');
-const { ethers } = require('ethers');
+// Legacy helper kept for reference, but made safe for hackathon submission:
+// - No hardcoded keys
+// - MIC computed over exact bytes
+// Prefer using fdc-carbon/request_jsonapi_attestation.js for the current Web2Json flow.
 
-/* ===== CONFIG - REPLACE THESE BEFORE RUNNING ===== */
-const RPC = "https://coston2-api.flare.network/ext/C/rpc"; // Flare Coston2 RPC endpoint
-const PRIVATE_KEY = "659e79e52fadbf7af89cd7d2959f295de9ba388c4818ad5f2f889ce835606df4"; // NEW key, not the leaked one
-const FDC_HUB_ADDRESS = "0x48aC463d7975828989331F4De43341627b9c5f1D"; // your known FDC hub address
-const API_URL = "https://api.carbonintensity.org.uk/intensity/2026-01-31T00:00Z/2026-02-07T00:00Z";
-const JQ = '.data | map({t: .from, carbon_gCO2_per_kWh: .intensity.forecast})';
-const FEE_WEI = ethers.parseEther("0.01"); // adjust as needed
-/* Verifier settings - REPLACE with actual testnet verifier info */
-const VERIFIER_BASE = "https://fdc-verifiers-testnet.flare.network"; // testnet verifier base
-const VERIFIER_API_KEY = "REPLACE_WITH_VERIFIER_API_KEY";
-/* ================================================== */
+const fetch = globalThis.fetch;
+const crypto = require("crypto");
+const fs = require("fs");
+const path = require("path");
+const { ethers } = require("ethers");
+
+function mustEnv(name) {
+  const v = process.env[name];
+  if (!v) throw new Error(`Missing required env var: ${name}`);
+  return String(v);
+}
+
+function optionalEnv(name, fallback) {
+  const v = process.env[name];
+  return v ? String(v) : fallback;
+}
+
+const RPC = optionalEnv("RPC_URL", "https://coston2-api.flare.network/ext/C/rpc");
+const PRIVATE_KEY = mustEnv("PRIVATE_KEY");
+const FDC_HUB_ADDRESS = optionalEnv(
+  "FDC_HUB_ADDRESS",
+  "0x48aC463d7975828989331F4De43341627b9c5f1D"
+);
+const API_URL = optionalEnv(
+  "API_URL",
+  "https://api.carbonintensity.org.uk/intensity/2026-01-31T00:00Z/2026-02-07T00:00Z"
+);
+const JQ = optionalEnv(
+  "JQ",
+  ".data | map({t: .from, carbon_gCO2_per_kWh: .intensity.forecast})"
+);
+const FEE_WEI = ethers.parseEther(optionalEnv("FDC_FEE_C2FLR", "0.01"));
+const VERIFIER_BASE = optionalEnv("VERIFIER_BASE", "https://fdc-verifiers-testnet.flare.network");
+const VERIFIER_API_KEY = mustEnv("VERIFIER_API_KEY");
+const API_RESPONSE_PATH = optionalEnv("API_RESPONSE_PATH", path.join(__dirname, "api_response.json"));
 
 async function prepareAbiEncodedRequest(mic) {
   // Build the request body matching verifier swagger for JsonApi prepareRequest
@@ -47,12 +70,14 @@ async function prepareAbiEncodedRequest(mic) {
 
 async function main() {
   // 0) read exact bytes and compute MIC
-  if (!fs.existsSync('api_response.json')) {
-    console.error("api_response.json not found in working dir. Run curl to save exact API response first.");
+  if (!fs.existsSync(API_RESPONSE_PATH)) {
+    console.error(
+      `api_response.json not found: ${API_RESPONSE_PATH}. Fetch and save exact API bytes first.`
+    );
     process.exit(1);
   }
-  const body = fs.readFileSync('api_response.json', 'utf8');
-  const mic = '0x' + crypto.createHash('sha256').update(body, 'utf8').digest('hex');
+  const bodyBytes = fs.readFileSync(API_RESPONSE_PATH);
+  const mic = `0x${crypto.createHash("sha256").update(bodyBytes).digest("hex")}`;
   console.log("MIC computed from saved file:", mic);
 
   // 1) prepare abiEncodedRequest via verifier
@@ -71,12 +96,16 @@ async function main() {
   const receipt = await tx.wait();
   console.log("tx mined in block:", receipt.blockNumber, "blockHash:", receipt.blockHash);
   // Save tx info for later
-  fs.writeFileSync('attestation_tx.json', JSON.stringify({ txHash: tx.hash, blockNumber: receipt.blockNumber }, null, 2));
-  console.log("Saved attestation_tx.json - next: compute roundId and fetch proof from DA layer once the round finalises.");
+  fs.writeFileSync(
+    "attestation_tx.json",
+    JSON.stringify({ txHash: tx.hash, blockNumber: receipt.blockNumber }, null, 2)
+  );
+  console.log(
+    "Saved attestation_tx.json - next: compute roundId and fetch proof from DA layer once the round finalises."
+  );
 }
 
 main().catch(err => {
   console.error("Error:", err && err.message ? err.message : err);
   process.exit(1);
 });
-

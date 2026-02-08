@@ -82,6 +82,7 @@ function ChartTooltip({ active, payload, label }) {
 export default function App() {
   const [hhData, setHhData] = useState(null);
   const [flexData, setFlexData] = useState(null);
+  const [onchain, setOnchain] = useState(null);
   const [selectedHH, setSelectedHH] = useState(0);
   const [dayIdx, setDayIdx] = useState(0);
 
@@ -89,6 +90,7 @@ export default function App() {
   useEffect(() => {
     fetch("/data/households.json").then(r => r.json()).then(setHhData).catch(() => {});
     fetch("/data/flex_responses.json").then(r => r.json()).then(setFlexData).catch(() => {});
+    fetch("/data/onchain.json").then(r => r.json()).then(setOnchain).catch(() => {});
   }, []);
 
   // ── Derived data ────────────────────────────────────────────────────────
@@ -159,9 +161,9 @@ export default function App() {
     return (
       <div style={{ ...s.app, textAlign: "center", paddingTop: 80 }}>
         <h1 style={{ color: C.green, fontSize: 28 }}>FlexDAO</h1>
-        <p style={{ color: C.muted, marginTop: 12 }}>Loading simulation data...</p>
+        <p style={{ color: C.muted, marginTop: 12 }}>Loading data...</p>
         <p style={{ color: C.muted, fontSize: 12, marginTop: 8 }}>
-          Make sure <code>backend/data/households.json</code> and <code>flex_responses.json</code> are copied to <code>frontend/public/data/</code>
+          Ensure <code>households.json</code> and <code>flex_responses.json</code> are in <code>frontend/public/data/</code>
         </p>
       </div>
     );
@@ -178,6 +180,46 @@ export default function App() {
           Comfort-constrained demand flexibility, verified on-chain via Flare FDC
         </p>
       </header>
+
+      {/* ── On-chain verification ─────────────────────────────────────── */}
+      {onchain && (
+        <div style={{ ...s.card, marginBottom: 24, borderColor: C.green }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+            <div>
+              <span style={{ fontSize: 13, fontWeight: 600, color: C.green }}>Verified via Flare Data Connector (FDC)</span>
+              <span style={{ fontSize: 11, color: C.muted, marginLeft: 10 }}>Network: {onchain.network} (Chain {onchain.chainId})</span>
+            </div>
+            <span style={{ fontSize: 11, padding: "2px 10px", borderRadius: 4, background: onchain.attestation.verified ? "#00d4aa22" : "#ff6b6b22", color: onchain.attestation.verified ? C.green : C.red, fontWeight: 600 }}>
+              {onchain.attestation.verified ? "VERIFIED" : "UNVERIFIED"}
+            </span>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 14, fontSize: 12 }}>
+            <div>
+              <div style={{ ...s.label, marginBottom: 6 }}>FDC Attestation</div>
+              <div style={{ color: C.text, marginBottom: 3 }}>
+                Tx: <code style={{ fontSize: 11, color: C.blue }}>{onchain.attestation.txHash.slice(0, 18)}...{onchain.attestation.txHash.slice(-6)}</code>
+              </div>
+              <div style={{ color: C.muted }}>Block: {onchain.attestation.blockNumber}</div>
+              <div style={{ color: C.muted }}>Verification: <span style={{ color: C.green }}>{onchain.attestation.verificationFunction}()</span></div>
+              <a href={onchain.attestation.explorerUrl} target="_blank" rel="noopener noreferrer" style={{ color: C.blue, fontSize: 11, textDecoration: "none", marginTop: 4, display: "inline-block" }}>
+                View on Flare Explorer &rarr;
+              </a>
+            </div>
+            <div>
+              <div style={{ ...s.label, marginBottom: 6 }}>Reward Execution</div>
+              <div style={{ color: C.text, marginBottom: 3 }}>
+                Tx: <code style={{ fontSize: 11, color: C.blue }}>{onchain.reward.txHash.slice(0, 18)}...{onchain.reward.txHash.slice(-6)}</code>
+              </div>
+              <div style={{ color: C.muted }}>Block: {onchain.reward.blockNumber}</div>
+              <div style={{ color: C.muted }}>Participant: <code style={{ fontSize: 10 }}>{onchain.reward.participant.slice(0, 8)}...{onchain.reward.participant.slice(-4)}</code></div>
+              <div style={{ color: C.muted }}>Shifted: {onchain.reward.shiftedKw} mKw</div>
+              <a href={onchain.reward.explorerUrl} target="_blank" rel="noopener noreferrer" style={{ color: C.blue, fontSize: 11, textDecoration: "none", marginTop: 4, display: "inline-block" }}>
+                View on Flare Explorer &rarr;
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── 1. Summary metrics ──────────────────────────────────────────── */}
       <div style={{ ...s.grid, ...s.grid4 }}>
@@ -367,26 +409,26 @@ export default function App() {
         <h2 style={s.h2}>Architecture</h2>
         <div style={{ ...s.card, fontFamily: "'SF Mono',monospace", fontSize: 11, lineHeight: 1.6 }}>
           <pre style={{ margin: 0, color: C.muted, overflow: "auto" }}>
-{`  UK Grid API (Web2)         Flare FDC (simulated)        FlexDAO (Solidity)
+{`  UK Grid API (Web2)         Flare FDC (Coston2)          RewardExecutor
   ┌─────────────────┐       ┌───────────────────┐       ┌──────────────────┐
-  │ Carbon Intensity │──────▶│ Attestation Stub  │──────▶│ FDCShim (on-chain│
-  │ /intensity/{t}   │ fetch │ keccak256(ts)→val │ relay │ key→intensity)   │
+  │ Carbon Intensity │──────▶│ Web2Json Attesta- │──────▶│ verifyWeb2Json() │
+  │ /intensity/{t}   │ fetch │ tion via FDC Hub  │ proof │ on-chain verify  │
   └─────────────────┘       └───────────────────┘       └────────┬─────────┘
-                                                                 │ reads
+                                                                 │ verified
   ┌─────────────────┐       ┌───────────────────┐       ┌───────▼──────────┐
-  │ 25 Households   │──────▶│ Flex Responses    │──────▶│ FlexDAO.sol      │
-  │ comfort-limited  │ numpy │ who shifted what  │submit │ verify + reward  │
+  │ 25 Households   │──────▶│ Flex Responses    │──────▶│ executeReward()  │
+  │ comfort-limited  │ numpy │ who shifted what  │  call │ on-chain record  │
   └─────────────────┘       └───────────────────┘       └──────────────────┘
 
-  REAL:  Carbon intensity data, keccak256 keys, Solidity verification logic
-  SIM:   FDC consensus, household metering, token transfers`}
+  ON-CHAIN:  FDC attestation, Merkle proof verification, reward execution
+  DATA:      Real UK carbon intensity, comfort-constrained load shifting`}
           </pre>
         </div>
       </div>
 
       {/* ── Footer ───────────────────────────────────────────────────── */}
       <footer style={{ textAlign: "center", color: C.muted, fontSize: 12, padding: "12px 0 24px" }}>
-        FlexDAO — ETH Oxford 2026 | Comfort-constrained demand flexibility on Flare
+        FlexDAO — ETH Oxford 2026 | Verified via Flare Data Connector (FDC) on Coston2
       </footer>
     </div>
   );
