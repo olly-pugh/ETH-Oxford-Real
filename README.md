@@ -2,7 +2,7 @@
 
 **Demand-flexibility verification and carbon-aware incentives, powered by Flare's Data Connector (FDC).**
 
-Built at ETH Oxford 2026.
+Built at ETH Oxford 2026 - Attempting the BONUS TRACK: "Show innovation by utilizing real world data in an on chain application"
 
 ---
 
